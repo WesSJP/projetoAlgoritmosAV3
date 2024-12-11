@@ -1,5 +1,3 @@
-# 15. Funcionalidade Extra (use a criatividade de verdade)
-################################################################
 import funcoes
 import uuid
 import time

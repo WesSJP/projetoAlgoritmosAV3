@@ -1,31 +1,25 @@
-# 13.Gerar gráfico de barra com quantidade de participantes dos
-# eventos
-
-# 14.Criar uma lista de usuários proibidos de serem adicionados em
-# eventos
-#   o Ao inserir um participante no evento, verificar se o nome dele
-#   não está nesta lista
-
 # 15. Funcionalidade Extra (use a criatividade de verdade)
-
-def loginVerificacao(emailInformado, senhaInformada):
-    if (emailInformado == email and senhaInformada == senha):
-        return True
-
-    return False
-
-
+################################################################
 import funcoes
 import uuid
 import time
+import matplotlib.pyplot as grafico
 
-usuarios = {'admin@admin.com': {'senha': "admin", 'nome': "Admin", 'eventosDoUser': []}}
+usuarios = {'admin@admin.com': {'senha': "admin", 'nome': "Admin", 'eventosDoUser': ["Evento teste", "Evento legal"]},
+            'wesley@gmail.com': {'senha': "123", 'nome': "Wesley", 'eventosDoUser': ["Evento legal"]}}
 eventos = {'82665c00-259d-4930-9f26-166760627dae': {'nome': "Evento teste", 'descricao': "Evento para testes",
                                                     'data': "12/12/12",
                                                     'local': "Local-UF", 'valor': 10, 'emailDono': "admin@admin.com",
-                                                    'qtdParticipantes': 0, 'valorArrecadado': 0,
+                                                    'qtdParticipantes': 1, 'valorArrecadado': 0,
                                                     'regras': ["Proibida a entrada calçando sandálias",
-                                                               "Proibido fumar no abiente"]}
+                                                               "Proibido fumar no abiente"],
+                                                    'usuariosBanidos': ['wesley@gmail.com']},
+           'f47ac10b-58cc-4372-a567-0e02b2c3d479': {'nome': "Evento legal", 'descricao': "Evento bastante divertido",
+                                                    'data': "12/12/12",
+                                                    'local': "SJP-PB", 'valor': 20, 'emailDono': "wesley@gmail.com",
+                                                    'qtdParticipantes': 2, 'valorArrecadado': 0,
+                                                    'regras': ["Proibido entrar vestido de verde"],
+                                                    'usuariosBanidos': []}
            }
 
 concorda = ["s", "sim", "sin", "ss", "yes", "y"]
@@ -94,6 +88,10 @@ while (True):
 
                 elif (opcaoPosLogin == 3):
                     print("-------------------------\nListar eventos\n-------------------------")
+                    print("Eis aqui a quantidade de participantes por evento")
+
+                    funcoes.gerarGrafico(eventos, grafico)
+
                     funcoes.listarEventos(eventos)
                     participarEvento = str(input("Deseja participar de algum evento? (s/n): "))
                     if (participarEvento in concorda):
@@ -103,23 +101,26 @@ while (True):
 
                         if (funcoes.encontrarEventoPorNome(eventos, nomeEventoAParticipar)):
                             print("Evento encontrado!")
-                            print("--------------------------------------------------")
-                            print(
-                                f"Para completar a insrição no evento '{nomeEventoAParticipar}', é necessário realizar o pagamento.")
-                            print("--------------------------------------------------")
-
-                            confirmarPagamento = str(input("Deseja confirmar o pagamento? (s/n): "))
-                            if (confirmarPagamento in concorda):
-                                funcoes.inserirParticipante(usuarios, eventos, email, nomeEventoAParticipar)
-
+                            if (not (funcoes.verificarBanimento(eventos, nomeEventoAParticipar, email))):
                                 print("--------------------------------------------------")
-                                print("Pagamento confirmado!\nVocê está inscrito no evento.")
+                                print(
+                                    f"Para completar a insrição no evento '{nomeEventoAParticipar}', é necessário realizar o pagamento.")
                                 print("--------------------------------------------------")
+
+                                confirmarPagamento = str(input("Deseja confirmar o pagamento? (s/n): "))
+                                if (confirmarPagamento in concorda):
+                                    funcoes.inserirParticipante(usuarios, eventos, email, nomeEventoAParticipar)
+
+                                    print("--------------------------------------------------")
+                                    print("Pagamento confirmado!\nVocê está inscrito no evento.")
+                                    print("--------------------------------------------------")
+                                else:
+                                    print("Pagamento não confirmado, você perdeu essa reserva.\nReserve novamente.")
                             else:
-                                print("Pagamento não confirmado, você perdeu essa reserva.\nReserve novamente.")
-
+                                print("Você está banido desse evento.")
                         else:
                             print("Não existe nenhum evento com esse nome.")
+
 
                 elif (opcaoPosLogin == 1):
                     while (True):
@@ -171,13 +172,13 @@ while (True):
 
                             regrasDoEvento.append(regraParaOEvento)
 
-                        id = str(uuid.uuid4)
+                        id = str(uuid.uuid4())
 
                         eventos[id] = {'nome': nomeEvento, 'descricao': descricaoEvento, 'data': dataEvento,
                                        'local': localEvento, 'valor': valorInscricaoEvento, 'emailDono': email,
                                        'qtdParticipantes': numeroDeParticipantes,
                                        'valorArrecadado': valorTotalArrecadado,
-                                       'regras': regrasDoEvento}
+                                       'regras': regrasDoEvento, 'usuariosBanidos': []}
                         print("O evento foi cadastrado com sucesso!")
                         break
 
@@ -197,14 +198,11 @@ while (True):
                                 eventosEncontradosNome = []
                                 nomeEventoABuscar = str(input("Insira o nome do evento que deseja buscar: "))
 
-                                for eventoBuscaNome in eventos:
-                                    if (eventoBuscaNome[0] == nomeEventoABuscar):
-                                        encontrado = True
-                                        eventosEncontradosNome.append(eventoBuscaNome)
+                                funcoes.encontrarEventoPorNome(eventos, nomeEventoABuscar, eventosEncontradosNome)
 
-                                if (encontrado):
+                                if (funcoes.encontrarEventoPorNome(eventos, nomeEventoABuscar)):
                                     print("Evento encontrado!")
-                                    funcoes.listarEventos(eventosEncontradosNome)
+                                    funcoes.listarNomes(eventosEncontradosNome, "Evento")
                                     break
                                 else:
                                     print("Não foi encontrado nenhum evento com esse nome.")
@@ -227,13 +225,13 @@ while (True):
                                         break
 
                                 for evento in eventos:
-                                    if (evento[4] >= precoMin and evento[4] <= precoMax):
+                                    if (eventos[evento]['valor'] >= precoMin and eventos[evento]['valor'] <= precoMax):
                                         encontrado = True
-                                        eventosEncontradosPreco.append(evento)
+                                        eventosEncontradosPreco.append(eventos[evento]['nome'])
 
                                 if (encontrado):
                                     print("Esses foram os eventos encontrados:")
-                                    funcoes.listarEventos(eventosEncontradosPreco)
+                                    funcoes.listarNomes(eventosEncontradosPreco, "Evento")
                                     break
                                 else:
                                     print("Não foi encontrado nenhum evento nesse intervalo de preço.")
@@ -265,16 +263,19 @@ while (True):
                                 print(f"Olá, {nomeUserAtual}!\nAqui estão os eventos que você criou: ")
                                 print(" ")
 
-                                funcoes.listarEventos(eventosDoUsuario)
+                                print("Gráfico com a quantidade de participantes dos seus eventos")
+                                funcoes.gerarGrafico(eventosDoUsuario, grafico)
+                                funcoes.listarEventos(eventosDoUsuario, True)
 
                                 opcaoMenuMeusEventosCriados = int(input("O que deseja fazer com seus eventos?"
                                                                         "\n1 - Remover evento"
                                                                         "\n2 - Listar participantes do evento"
                                                                         "\n3 - Adicionar participante ao evento"
-                                                                        "\n4 - Voltar ao menu anterior"
+                                                                        "\n4 - Banir participante do evento"
+                                                                        "\n5 - Voltar ao menu anterior"
                                                                         "\nEscolha sua opção: "))
 
-                                if (opcaoMenuMeusEventosCriados == 4):
+                                if (opcaoMenuMeusEventosCriados == 5):
                                     break
 
                                 elif (opcaoMenuMeusEventosCriados == 1):
@@ -282,9 +283,9 @@ while (True):
                                         logadoRemover = False
 
                                         print("--------------------------------------------------")
-                                        nomeEventoRemover = str(input("Insira o nome do evento que deseja remover: "))
+                                        idEventoRemover = str(input("Insira o ID do evento que deseja remover: "))
 
-                                        if (funcoes.encontrarEventoPorNome(eventosDoUsuario, nomeEventoRemover)):
+                                        if (funcoes.encontrarEventoPorId(eventosDoUsuario, idEventoRemover)):
                                             certezaRemover = str(
                                                 input("Tem cereteza que deseja remover esse evento? (s/n): "))
                                             if (certezaRemover in concorda):
@@ -293,10 +294,11 @@ while (True):
                                                 print("--------------------------------------------------")
                                                 emailLoginRemover = str(input("Insira seu email: "))
                                                 senhaLoginRemover = str(input("Insira sua senha: "))
-                                                if (loginVerificacao(emailLoginRemover, senhaLoginRemover)):
+                                                if (funcoes.loginVerificacao(usuarios, email, emailLoginRemover,
+                                                                             senhaLoginRemover)):
                                                     statusRem = False
                                                     for evento in eventos:
-                                                        if (eventos[evento]['nome'] == nomeEventoRemover):
+                                                        if (evento == idEventoRemover):
                                                             statusRem = True
 
                                                     if (statusRem):
@@ -338,24 +340,43 @@ while (True):
                                     time.sleep(1.5)
 
                                 elif (opcaoMenuMeusEventosCriados == 3):
-                                    nomeEventoAInserirParticipante = str(
-                                        input("Insira o nome do evento que deseja inserir o participante: "))
+                                    idEventoAInserirParticipante = str(
+                                        input("Insira o ID do evento que deseja inserir o participante: "))
 
                                     emailUsuarioAInserirNoEvento = str(
                                         input("Insira o email do usuário que deseja inserir no evento: "))
 
                                     if ((funcoes.encontrarUserPorEmail(usuarios, emailUsuarioAInserirNoEvento)) and (
-                                    funcoes.encontrarEventoPorNome(eventos, nomeEventoAInserirParticipante))):
+                                    funcoes.encontrarEventoPorId(eventos, idEventoAInserirParticipante))):
 
-                                        funcoes.inserirParticipante(usuarios, eventos, emailUsuarioAInserirNoEvento,
-                                                                    nomeEventoAInserirParticipante)
+                                        if (not (funcoes.verificarBanimento(eventos,
+                                                                            eventos[idEventoAInserirParticipante][
+                                                                                'nome'],
+                                                                            emailUsuarioAInserirNoEvento))):
+                                            funcoes.inserirParticipante(usuarios, eventos, emailUsuarioAInserirNoEvento,
+                                                                        eventos[idEventoAInserirParticipante]['nome'])
 
-                                        print("--------------------------------------------------")
-                                        print("Você inscreveu um novo participante no evento!")
-                                        print("--------------------------------------------------")
+                                            print("--------------------------------------------------")
+                                            print("Você inscreveu um novo participante no evento!")
+                                            print("--------------------------------------------------")
+                                        else:
+                                            print("Esse usuário está banido do evento.")
 
                                     else:
                                         print("Esse usuário ou evento não existem.")
+
+                                elif (opcaoMenuMeusEventosCriados == 4):
+                                    emailUserASerBanido = str(input("Insira o email do usuário a ser banido: "))
+                                    if (funcoes.encontrarUserPorEmail(usuarios, emailUserASerBanido)):
+                                        idEventoABanirAlguem = str(
+                                            input("Insira o ID do evento do qual irá banir o usuário: "))
+                                        if (funcoes.encontrarEventoPorId(eventos, idEventoABanirAlguem)):
+                                            eventos[idEventoABanirAlguem]['usuariosBanidos'].append(emailUserASerBanido)
+                                            time.sleep(1)
+                                        else:
+                                            print("Esse evento não existe.")
+                                    else:
+                                        print("Esse usuário não existe.")
                                 else:
                                     print("Opção inválida.")
 
@@ -365,10 +386,9 @@ while (True):
                             while (True):
                                 eventosQueOUsuarioParticipa = []
 
-                                for user in usuarios:
-                                    if (user == email):
-                                        for evento in usuarios[user]['eventosDoUser']:
-                                            eventosQueOUsuarioParticipa.append(evento)
+                                if (funcoes.encontrarUserPorEmail(usuarios, email)):
+                                    for evento in usuarios[user]['eventosDoUser']:
+                                        eventosQueOUsuarioParticipa.append(evento)
 
                                 if (len(eventosQueOUsuarioParticipa) == 0):
                                     print("Você não participa de nenhum evento.")
@@ -378,8 +398,7 @@ while (True):
                                 print(f"Olá, {nomeUserAtual}!\nAqui estão os eventos que você está participando: ")
                                 print(" ")
 
-                                for evento in eventosQueOUsuarioParticipa:
-                                    print(f'Evento: {evento}', end=' | \n')
+                                funcoes.listarNomes(eventosQueOUsuarioParticipa, "Evento")
 
                                 print("--------------------------------------------------")
                                 desejaCancelarInscricao = str(
